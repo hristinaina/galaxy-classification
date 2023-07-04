@@ -9,12 +9,14 @@ from keras.layers import Conv2D, MaxPooling2D, Dropout, Dense, Flatten
 from keras.regularizers import l2
 from keras_preprocessing.image import ImageDataGenerator
 from matplotlib import pyplot as plt
+from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.model_selection import train_test_split
+import seaborn as sns
 
 # change file path to where you have stored your dataset
 FILE_PATH = '../../data/Galaxy10_DECals.h5'
 BATCH_SIZE = 25
-EPOCHS = 10
+EPOCHS = 13
 
 
 def load_data():
@@ -41,7 +43,7 @@ def split_data():
     print("splitting dataset to train and test datasets...")
     x_train, x_test, y_train, y_test = train_test_split(images, labels, test_size=0.1)
 
-    print("splitting dataset to train and validation datasets...")
+    print("splitting train dataset to train and validation datasets...")
     x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2)
 
     # call garbage collector to free memory
@@ -90,12 +92,25 @@ def define_model():
     print("Test Loss:", test_loss)
     print("Test Accuracy:", test_accuracy)
 
+    show_matrix(model, x_test, y_test)
+    show_diagram(history)
+
     model.save('../model/model.h5')
 
-    return history
+
+def show_matrix(model, x_test, y_test):
+    # show accuracy of predictions in matrix
+    predict = model.predict(x_test).argmax(axis=1)
+    print(classification_report(y_test, predict))
+    matrix = confusion_matrix(y_test, predict)
+    sns.heatmap(matrix, annot=True)
+    plt.title('Galaxy Confusion Matrix')
+    plt.xlabel('Predicted class')
+    plt.ylabel('True class')
+    plt.show()
 
 
-def show():
+def show_diagram(history):
     # Access the learning rate values and loss values from the callback
     val_loss = history.history['val_loss']
 
@@ -108,5 +123,4 @@ def show():
 
 
 if __name__ == '__main__':
-    history = define_model()
-    show()
+    define_model()
