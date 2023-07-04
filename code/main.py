@@ -1,4 +1,5 @@
 import gc
+import os
 
 import h5py
 import numpy as np
@@ -7,47 +8,51 @@ from keras.callbacks import ReduceLROnPlateau
 from keras.optimizers import Adam
 from keras.layers import Conv2D, MaxPooling2D, Dropout, Dense, Flatten
 from keras.regularizers import l2
-from sklearn.model_selection import train_test_split
+from keras_preprocessing.image import ImageDataGenerator
 
-# change file path to where you have stored your dataset
-FILE_PATH = '../../data/Galaxy10_DECals.h5'
 BATCH_SIZE = 20
 EPOCHS = 15
 
+train_data_dir = '../data/train/train_data.h5'
+test_data_dir = '../data/test/test_data.h5'
+validation_data_dir = '../data/validation/validation_data.h5'
 
-def load_data():
-    # get the images and labels from file
-    print("loading dataset...")
-    with h5py.File(FILE_PATH, 'r') as F:
+
+def load_file(file_path):
+    with h5py.File(file_path, 'r') as F:
+        print("tuu sam")
         images = np.array(F['images'])
-        print("loaded images")
         labels = np.array(F['ans'])
-        print("loaded labels")
-
-    # shuffle data in dataset
-    indices = np.arange(len(images))
-    np.random.shuffle(indices)
-    images = images[indices]
-    labels = labels[indices]
 
     return images, labels
 
 
-def split_data():
-    images, labels = load_data()
+def get_datasets():
+    train_data_generator = ImageDataGenerator(rescale=1. / 255, shear_range=0.2, zoom_range=0.2, horizontal_flip=True)
+    val_data_generator = ImageDataGenerator(rescale=1. / 255)
+    test_data_generator = ImageDataGenerator(rescale=1. / 255)
 
-    print("splitting dataset to train and test datasets...")
-    x_train, x_test, y_train, y_test = train_test_split(images, labels, test_size=0.1)
+    # Create the train generator
+    images, labels = load_file(train_data_dir)
+    train_data_generator.fit(images)
+    train_generator = train_data_generator.flow(images, labels, batch_size=BATCH_SIZE)
 
-    # call garbage collector to free memory
-    del images, labels
+    # Create the validation generator
+    images, labels = load_file(validation_data_dir)
+    val_data_generator.fit(images)
+    val_generator = train_data_generator.flow(images, labels, batch_size=BATCH_SIZE)
+
+    # Create the test generator
+    images, labels = load_file(test_data_dir)
+    test_data_generator.fit(images)
+    test_generator = test_data_generator.flow(images, labels, batch_size=BATCH_SIZE)
+
     gc.collect()
-
-    return x_train, y_train, x_test, y_test
+    return train_generator, val_generator, test_generator
 
 
 def define_model():
-    x_train, y_train, x_test, y_test = split_data()
+    train_generator, val_generator, test_generator = get_datasets()
     model = Sequential()
 
     model.add(Conv2D(filters=6, kernel_size=(5, 5), strides=(1, 1), kernel_regularizer=l2(0.002), activation='relu',
@@ -70,11 +75,11 @@ def define_model():
 
     model.compile(optimizer=model_optimizer, loss='sparse_categorical_crossentropy', metrics=["accuracy"])
     print("\nTRAINING STARTED...")
-    model.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=EPOCHS, callbacks=[reduceLR])
+    model.fit(train_generator, batch_size=BATCH_SIZE, epochs=EPOCHS, validation_data=val_generator, callbacks=[reduceLR])
 
     gc.collect()
     print("\nTESTING STARTED...")
-    test_loss, test_accuracy = model.evaluate(x_test, y_test)
+    test_loss, test_accuracy = model.evaluate(test_generator)
     print("Test Loss:", test_loss)
     print("Test Accuracy:", test_accuracy)
 
