@@ -16,7 +16,7 @@ import seaborn as sns
 # change file path to where you have stored your dataset
 FILE_PATH = '../../data/Galaxy10_DECals.h5'
 BATCH_SIZE = 25
-EPOCHS = 13
+EPOCHS = 10
 
 
 def load_data():
