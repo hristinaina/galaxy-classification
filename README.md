@@ -9,7 +9,7 @@ The model.h5 file was not uploaded because the file size was too large
 
 ## Prerequisites
 - python 3.9+
-- anaconda environment with CUDA toolkit (for faster performance)
+- (optional) conda environment with CUDA toolkit (to be able to run the project with gpu - for faster performance). <br> Guide for installation:  https://www.tensorflow.org/install/pip#windows-native
 
 
 
